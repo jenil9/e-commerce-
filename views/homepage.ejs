@@ -38,6 +38,7 @@
       padding: 1rem;
       transition: left 0.3s ease-in-out;
       z-index: 1000;
+      overflow-y: auto;
     }
     .sidebar.active {
       left: 0;
@@ -174,8 +175,8 @@
     <h3 onclick="toggleMenu()">Menu</h3>
     <ul>
       <li onclick="tohome()">Home</li>
-      <!-- <li>Shop</li> -->
-      <li>Categories</li>
+      <li id="category-menu" style="cursor:pointer;">Categories</li>
+      <ul id="category-list" style="display:none; list-style:none; padding-left: 15px; color: #ccc;"></ul>
       <li onclick="window.location.href='/cart'">Cart</li>
       <li onclick="goToProfile()">Profile</li>
       <li onclick="logout()">Logout</li>
@@ -199,6 +200,9 @@
     let currentPage = 0;
     const itemsPerPage = 5;
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const categoryMenu = document.getElementById('category-menu');
+    const categoryList = document.getElementById('category-list');
+    let selectedCategory = null;  // currently selected category filter
 
     function toggleMenu() {
       document.getElementById('sidebar').classList.toggle('active');
@@ -208,20 +212,20 @@
       window.location.href = "/home";
     }
     function goToProfile() {
-    fetch('/profile', {
-      method: 'GET',
-      headers: {
-        'Authorization': localStorage.getItem('token')
-      }
-    })
-    .then(response => response.text())
-    .then(html => {
-      document.open(); // clear current document
-      document.write(html); // write new content
-      document.close();
-    })
-    .catch(err => alert('Unauthorized or error loading profile.'));
-  }
+      fetch('/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': localStorage.getItem('token')
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        document.open(); // clear current document
+        document.write(html); // write new content
+        document.close();
+      })
+      .catch(err => alert('Unauthorized or error loading profile.'));
+    }
     function logout() {
       localStorage.removeItem('token');
       localStorage.removeItem('cart');
@@ -262,22 +266,70 @@
       }
     }
 
+    // Get unique categories from products
+    function getUniqueCategories() {
+      const categories = new Set(products.map(p => p.category));
+      return Array.from(categories).sort();
+    }
+
+    // Render category list under Categories menu
+    function renderCategoryList() {
+      categoryList.innerHTML = '';
+
+      // Add "All" option to clear filter
+      const allItem = document.createElement('li');
+      allItem.textContent = 'All';
+      allItem.style.cursor = 'pointer';
+      allItem.onclick = () => {
+        selectedCategory = null;
+        categoryList.style.display = 'none';
+        currentPage = 0;
+        displayProducts();
+      };
+      categoryList.appendChild(allItem);
+
+      // Add categories
+      getUniqueCategories().forEach(cat => {
+        const li = document.createElement('li');
+        li.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+        li.style.cursor = 'pointer';
+        li.onclick = () => {
+          selectedCategory = cat;
+          categoryList.style.display = 'none';
+          currentPage = 0;
+          displayProducts();
+        };
+        categoryList.appendChild(li);
+      });
+    }
+
+    // Toggle category list visibility on clicking Categories menu
+    categoryMenu.addEventListener('click', () => {
+      if (categoryList.style.display === 'none') {
+        renderCategoryList();
+        categoryList.style.display = 'block';
+      } else {
+        categoryList.style.display = 'none';
+      }
+    });
+
+    // Display products with optional category filter
     function displayProducts() {
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
 
+      let filteredProducts = selectedCategory ? products.filter(p => p.category === selectedCategory) : products;
+
       const start = currentPage * itemsPerPage;
       const end = start + itemsPerPage;
-      const visibleProducts = products.slice(start, end);
+      const visibleProducts = filteredProducts.slice(start, end);
 
       visibleProducts.forEach(product => {
         const quantity = getProductQuantity(product.id);
 
-        // Create product card container
         const card = document.createElement('div');
         card.className = 'product-card';
 
-        // Build inner HTML
         let cartControls = '';
         if (quantity === 0) {
           cartControls = `<button onclick="addToCart(${product.id})">Add to Cart</button>`;
@@ -303,7 +355,7 @@
         grid.appendChild(card);
       });
 
-      const totalPages = Math.ceil(products.length / itemsPerPage);
+      const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
       document.getElementById('page-indicator').textContent = `Page ${currentPage + 1} of ${totalPages}`;
       document.getElementById('prev-btn').style.display = currentPage > 0 ? 'inline-block' : 'none';
       document.getElementById('next-btn').style.display = (currentPage + 1 < totalPages) ? 'inline-block' : 'none';
@@ -342,7 +394,8 @@
     });
 
     document.getElementById('next-btn').addEventListener('click', () => {
-      if ((currentPage + 1) * itemsPerPage < products.length) {
+      let filteredProducts = selectedCategory ? products.filter(p => p.category === selectedCategory) : products;
+      if ((currentPage + 1) * itemsPerPage < filteredProducts.length) {
         currentPage++;
         displayProducts();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -372,7 +425,6 @@
 
       fetchProducts();
     }
-   
   </script>
 </body>
 </html>
