@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Home</title></head>
+<body>
+  <h2 id="greeting">Loading...</h2>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert("Please log in first.");
+      window.location.href = "/";
+    } else {
+      fetch('/api/home', {
+        method: 'GET',
+        headers: { 'Authorization': token }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Unauthorized');
+        return res.json();
+      })
+      .then(data => {
+        document.getElementById('greeting').textContent = `Welcome, ${data.name}`;
+      })
+      .catch(err => {
+        alert("Access denied or token expired.");
+        window.location.href = "/";
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Signup</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background: #fff;
+      padding: 2rem 3rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-container h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input {
+      padding: 10px;
+      margin-bottom: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .submit {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 0.5rem;
+    }
+
+    .submit:hover {
+      background: #0056b3;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 1.5rem 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <h2>Create New Account</h2>
+  <form id="signupForm">
+    <input type="text" name="name" id="name" placeholder="First Name" />
+    <div id="nameError" class="error"></div>
+
+    <input type="text" name="lastname" id="lastname" placeholder="Last Name" />
+    <div id="lastnameError" class="error"></div>
+
+    <input type="email" name="email" id="email" placeholder="Email" />
+    <div id="emailError" class="error"></div>
+
+    <input type="password" name="password" id="password" placeholder="Password" />
+    <div id="passwordError" class="error"></div>
+
+    <input type="password" name="samepassword" id="samepassword" placeholder="Confirm Password" />
+    <div id="samePasswordError" class="error"></div>
+
+    <input type="submit" id="submit" class="submit" value="Sign Up" />
+  </form>
+</div>
+
+<script>
+  document.getElementById('signupForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    // Clear previous errors
+    document.querySelectorAll('.error').forEach(el => el.textContent = '');
+
+    const name = document.getElementById('name').value.trim();
+    const lastname = document.getElementById('lastname').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const samepassword = document.getElementById('samepassword').value.trim();
+
+    let hasError = false;
+
+    if (!name) {
+      document.getElementById('nameError').textContent = 'First name is required';
+      hasError = true;
+    }
+
+    if (!lastname) {
+      document.getElementById('lastnameError').textContent = 'Last name is required';
+      hasError = true;
+    }
+
+    if (!email) {
+      document.getElementById('emailError').textContent = 'Email is required';
+      hasError = true;
+    } else {
+      const emailRegex = /^[^\s@]+@gmail\.com$/;
+      if (!emailRegex.test(email)) {
+        document.getElementById('emailError').textContent = 'Only Gmail addresses are allowed';
+        hasError = true;
+      }
+    }
+
+    if (!password) {
+      document.getElementById('passwordError').textContent = 'Password is required';
+      hasError = true;
+    } else {
+      const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        document.getElementById('passwordError').textContent =
+          'Password must be at least 8 characters long, include 1 uppercase letter, 1 number, and 1 special character.';
+        hasError = true;
+      }
+    }
+
+    if (!samepassword) {
+      document.getElementById('samePasswordError').textContent = 'Confirm password is required';
+      hasError = true;
+    } else if (password !== samepassword) {
+      document.getElementById('samePasswordError').textContent = 'Passwords do not match';
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    try {
+      const response = await fetch('/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, lastname, email, password }),
+      });
+
+      const result = await response.text();
+      document.body.innerHTML = result; // Show server response
+    } catch (err) {
+      document.getElementById('passwordError').textContent = 'Error: ' + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
